@@ -1,9 +1,9 @@
-// Rate Limiter Sederhana di In-Memory (Server/Instance level)
-const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 Menit
-const MAX_REQUESTS_PER_WINDOW = 10; // Batas 10 request per menit per IP
-const ipCache = new Map();
+// Mencegah spam dengan membatasi request per IP address
+const RATE_LIMIT_WINDOW_MS = 60 * 1000; // Jangka waktu: 1 menit (60.000 ms)
+const MAX_REQUESTS_PER_WINDOW = 10;     // Maksimal 10 request per menit per pengguna
+const ipCache = new Map();              // Tempat menyimpan catatan jumlah request per IP
 
-// Helper untuk membersihkan cache tua agar tidak bocor memori
+// Fitur otomatis: Membersihkan data IP lama dari memori setiap 1 menit
 setInterval(() => {
   const now = Date.now();
   for (const [ip, data] of ipCache.entries()) {
@@ -14,11 +14,12 @@ setInterval(() => {
 }, RATE_LIMIT_WINDOW_MS);
 
 export default async function handlerChat(req, res) {
+  // Hanya menerima metode HTTP POST
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Metode HTTP tidak diizinkan." });
   }
 
-  // --- 1. RATE LIMITING (RPM Protection) ---
+  // --- CEK RATE LIMIT (PEMBATAS SPAM) ---
   const clientIp = req.headers["x-forwarded-for"] || req.socket.remoteAddress || "unknown_ip";
   const now = Date.now();
   const userRate = ipCache.get(clientIp) || { count: 0, startTime: now };
@@ -33,19 +34,28 @@ export default async function handlerChat(req, res) {
 
   if (userRate.count > MAX_REQUESTS_PER_WINDOW) {
     return res.status(429).json({
-      error: "Terlalu banyak request (Rate limit tercapai). Tunggu 1 menit sebelum mengirim pesan lagi.",
+      error: "Terlalu banyak request. Tunggu 1 menit sebelum mengirim pesan lagi.",
     });
   }
 
+  // --- AMBIL DATA DARI FRONTEND ---
   const { conversation, conservation } = req.body || {};
   const rawChatList = conversation || conservation;
 
+  if (!Array.isArray(rawChatList) || rawChatList.length === 0) {
+    return res.status(400).json({ error: "Riwayat percakapan tidak valid." });
+  }
+
   try {
-    const API_KEY = process.env.DEEPSEEK_API_KEY;
+    // Menyusun daftar API Key. Jika Kunci 1 habis/error, otomatis pindah ke Kunci 2
+    const API_KEYS = [
+      process.env.MIMO_API_KEY, process.env.GEMINI_API_KEY
+    ].filter(Boolean); // Menghapus key yang bernilai kosong/undefined
+
     const BASE_URL = "https://bandelbanget.xyz/v1/chat/completions";
     const MODEL = "mimo-v2.5-pro";
 
-    // Optimasi System Instruction khusus Celeste AI
+    // Persona dan aturan respon untuk Celeste AI
     const SYSTEM_INSTRUCTION = `
 Kamu adalah Celeste AI, seorang asisten belajar personal dan mentor edukasi virtual yang sangat berpengalaman, berwawasan luas, santai, dan bersahabat.
 
@@ -68,25 +78,20 @@ Aturan Utama Penyampaian:
 - Jika pengguna meminta latihan soal, berikan 1-2 soal terlebih dahulu, lalu tunggu jawaban pengguna sebelum memberikan kunci pembahasan.
 `;
 
-    if (!Array.isArray(rawChatList) || rawChatList.length === 0) {
-      return res.status(400).json({ error: "Riwayat percakapan tidak valid." });
-    }
-
-    // --- 2. OPTIMASI INPUT TOKEN (TRUNCATE & PRUNING) ---
-    // Diatur ke 4 pesan terakhir (2 pasang percakapan). Cukup untuk konteks aktif tanpa membengkakkan token.
+    // Hanya ambil 4 pesan terakhir (2 pasang obrolan) untuk menghemat token
     const slicedChats = rawChatList.slice(-4);
 
     const formattedChats = slicedChats.map(({ role, text, image }, index) => {
       const isLatestMessage = index === slicedChats.length - 1;
       const parsedRole = role === "bot" || role === "model" ? "assistant" : "user";
       
-      // Pangkas teks yang terlalu panjang di pesan riwayat lama (max 1000 karakter per pesan)
+      // Pangkas teks riwayat lama jika melebihi 1000 karakter
       let trimmedText = text ? text.trim() : "";
       if (trimmedText.length > 1000 && !isLatestMessage) {
         trimmedText = trimmedText.slice(0, 1000) + "... [teks dipangkas]";
       }
 
-      // Kirim gambar HANYA jika berada pada pesan terbawah/paling baru
+      // Jika pesan paling baru menyertakan gambar (Format Multimodal / Vision)
       if (isLatestMessage && image?.data && image?.mimeType) {
         const contentArray = [];
 
@@ -103,61 +108,80 @@ Aturan Utama Penyampaian:
           image_url: { url: imageUrl }
         });
 
-        return {
-          role: parsedRole,
-          content: contentArray,
-        };
+        return { role: parsedRole, content: contentArray };
       }
 
-      return {
-        role: parsedRole,
-        content: trimmedText,
-      };
+      // Pesan teks biasa
+      return { role: parsedRole, content: trimmedText };
     }).filter(msg => {
       if (Array.isArray(msg.content)) return msg.content.length > 0;
       return msg.content !== "";
     });
 
+    // Gabungkan System Instruction di awal array pesan
     const messages = [
-      {
-        role: "system",
-        content: SYSTEM_INSTRUCTION,
-      },
+      { role: "system", content: SYSTEM_INSTRUCTION },
       ...formattedChats
     ];
 
-    // --- 3. OPTIMASI REQUEST API & OUTPUT TOKEN ---
-    const apiResponse = await fetch(BASE_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        messages: messages,
-        temperature: 0.6,
-        max_tokens: 800, // Batasi jumlah karakter balasan AI agar tidak membengkak berlebihan
-      }),
-    });
+    let botReply = null;
+    let lastError = null;
 
-    if (!apiResponse.ok) {
-      const errorData = await apiResponse.json().catch(() => ({}));
-      throw { status: apiResponse.status, message: errorData?.error?.message || apiResponse.statusText };
+    // Mencoba satu per satu API Key yang tersedia
+    for (let i = 0; i < API_KEYS.length; i++) {
+      const currentApiKey = API_KEYS[i];
+
+      try {
+        const apiResponse = await fetch(BASE_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${currentApiKey}`,
+          },
+          body: JSON.stringify({
+            model: MODEL,
+            messages: messages,
+            temperature: 0.6,
+            max_tokens: 800, // Batas panjang balasan AI agar irit token
+          }),
+        });
+
+        // Jika API Key ini bermasalah (error/limit), cetak log dan coba key berikutnya
+        if (!apiResponse.ok) {
+          const errorData = await apiResponse.json().catch(() => ({}));
+          const status = apiResponse.status;
+          console.warn(`[Key Ke-${i + 1} Gagal] Status: ${status}`);
+          lastError = { status, message: errorData?.error?.message || apiResponse.statusText };
+          continue; // Lanjut ke perulangan berikutnya
+        }
+
+        // Jika sukses
+        const data = await apiResponse.json();
+        botReply = data?.choices?.[0]?.message?.content || "Tidak ada respon dari server.";
+        break; // Hentikan perulangan karena sudah berhasil
+
+      } catch (err) {
+        console.error(`[Key Ke-${i + 1} Network Error]:`, err);
+        lastError = err;
+      }
     }
 
-    const data = await apiResponse.json();
-    const botReply = data?.choices?.[0]?.message?.content || "Tidak ada respon dari server.";
+    // Jika seluruh API Key gagal
+    if (!botReply) {
+      throw lastError || new Error("Semua API Key gagal memproses permintaan.");
+    }
 
+    // Kirim hasil balasan AI ke frontend
     return res.status(200).json({ result: botReply });
 
   } catch (e) {
-    console.error("API Error:", e);
+    console.error("API Error Final:", e);
 
+    // Penanganan pesan kesalahan (Error Handling)
     const isRateLimit = e?.status === 429 || e?.message?.includes("429") || e?.message?.includes("quota");
     if (isRateLimit) {
       return res.status(429).json({
-        error: "Batas kuota tercapai. Silakan tunggu 1-2 menit sebelum mengirim pesan lagi.",
+        error: "Batas kuota seluruh API Key tercapai. Silakan tunggu 1-2 menit.",
       });
     }
 
