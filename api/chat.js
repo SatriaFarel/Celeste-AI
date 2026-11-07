@@ -1,29 +1,24 @@
-// Mencegah spam dengan membatasi request per IP address
-const RATE_LIMIT_WINDOW_MS = 60 * 1000; // Jangka waktu: 1 menit (60.000 ms)
-const MAX_REQUESTS_PER_WINDOW = 10;     // Maksimal 10 request per menit per pengguna
-const ipCache = new Map();              // Tempat menyimpan catatan jumlah request per IP
+// Rate limit memory sederhana khusus runtime Vercel
+const RATE_LIMIT_WINDOW_MS = 60 * 1000;
+const MAX_REQUESTS_PER_WINDOW = 10;
+const ipCache = new Map();
 
-// Fitur otomatis: Membersihkan data IP lama dari memori setiap 1 menit
-setInterval(() => {
-  const now = Date.now();
-  for (const [ip, data] of ipCache.entries()) {
-    if (now - data.startTime > RATE_LIMIT_WINDOW_MS) {
-      ipCache.delete(ip);
-    }
-  }
-}, RATE_LIMIT_WINDOW_MS);
-
-export default async function handlerChat(req, res) {
-  // Hanya menerima metode HTTP POST
+export default async function handler(req, res) {
+  // 1. Hanya izinkan metode POST
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Metode HTTP tidak diizinkan." });
   }
 
-  // --- CEK RATE LIMIT (PEMBATAS SPAM) ---
-  const clientIp = req.headers["x-forwarded-for"] || req.socket.remoteAddress || "unknown_ip";
+  // 2. Proteksi Rate Limiting (Anti Spam)
+  const clientIp =
+    req.headers["x-forwarded-for"]?.split(",")[0]?.trim() ||
+    req.socket?.remoteAddress ||
+    "unknown_ip";
+
   const now = Date.now();
   const userRate = ipCache.get(clientIp) || { count: 0, startTime: now };
 
+  // Reset window jika sudah lebih dari 1 menit
   if (now - userRate.startTime > RATE_LIMIT_WINDOW_MS) {
     userRate.count = 1;
     userRate.startTime = now;
@@ -32,13 +27,20 @@ export default async function handlerChat(req, res) {
   }
   ipCache.set(clientIp, userRate);
 
+  // Bersihkan cache IP yang sudah kadaluarsa secara manual agar ram serverless hemat
+  if (ipCache.size > 100) {
+    for (const [ip, data] of ipCache.entries()) {
+      if (now - data.startTime > RATE_LIMIT_WINDOW_MS) ipCache.delete(ip);
+    }
+  }
+
   if (userRate.count > MAX_REQUESTS_PER_WINDOW) {
     return res.status(429).json({
       error: "Terlalu banyak request. Tunggu 1 menit sebelum mengirim pesan lagi.",
     });
   }
 
-  // --- AMBIL DATA DARI FRONTEND ---
+  // 3. Ambil dan validasi payload dari body
   const { conversation, conservation } = req.body || {};
   const rawChatList = conversation || conservation;
 
@@ -47,15 +49,24 @@ export default async function handlerChat(req, res) {
   }
 
   try {
-    // Menyusun daftar API Key. Jika Kunci 1 habis/error, otomatis pindah ke Kunci 2
+    // 4. Cek API Keys dari Environment Variable Vercel
     const API_KEYS = [
-      process.env.MIMO_API_KEY, process.env.GEMINI_API_KEY
-    ].filter(Boolean); // Menghapus key yang bernilai kosong/undefined
+      process.env.MIMO_API_KEY,
+      process.env.GEMINI_API_KEY,
+      process.env.DEEPSEEK_API_KEY
+    ].filter(key => typeof key === "string" && key.trim().length > 0);
+
+    // Jika tidak ada API Key yang diset di Environment Vercel
+    if (API_KEYS.length === 0) {
+      console.error("[Vercel Error] Tidak ada API Key yang ditemukan di Environment Variables.");
+      return res.status(500).json({
+        error: "Konfigurasi server belum lengkap (API Key belum diisi di Vercel).",
+      });
+    }
 
     const BASE_URL = "https://bandelbanget.xyz/v1/chat/completions";
     const MODEL = "mimo-v2.5-pro";
 
-    // Persona dan aturan respon untuk Celeste AI
     const SYSTEM_INSTRUCTION = `
 Kamu adalah Celeste AI, seorang asisten belajar personal dan mentor edukasi virtual yang sangat berpengalaman, berwawasan luas, santai, dan bersahabat.
 
@@ -78,20 +89,18 @@ Aturan Utama Penyampaian:
 - Jika pengguna meminta latihan soal, berikan 1-2 soal terlebih dahulu, lalu tunggu jawaban pengguna sebelum memberikan kunci pembahasan.
 `;
 
-    // Hanya ambil 4 pesan terakhir (2 pasang obrolan) untuk menghemat token
+    // Ambil 4 pesan terakhir
     const slicedChats = rawChatList.slice(-4);
 
     const formattedChats = slicedChats.map(({ role, text, image }, index) => {
       const isLatestMessage = index === slicedChats.length - 1;
       const parsedRole = role === "bot" || role === "model" ? "assistant" : "user";
       
-      // Pangkas teks riwayat lama jika melebihi 1000 karakter
       let trimmedText = text ? text.trim() : "";
       if (trimmedText.length > 1000 && !isLatestMessage) {
         trimmedText = trimmedText.slice(0, 1000) + "... [teks dipangkas]";
       }
 
-      // Jika pesan paling baru menyertakan gambar (Format Multimodal / Vision)
       if (isLatestMessage && image?.data && image?.mimeType) {
         const contentArray = [];
 
@@ -111,23 +120,22 @@ Aturan Utama Penyampaian:
         return { role: parsedRole, content: contentArray };
       }
 
-      // Pesan teks biasa
       return { role: parsedRole, content: trimmedText };
     }).filter(msg => {
       if (Array.isArray(msg.content)) return msg.content.length > 0;
       return msg.content !== "";
     });
 
-    // Gabungkan System Instruction di awal array pesan
     const messages = [
       { role: "system", content: SYSTEM_INSTRUCTION },
       ...formattedChats
     ];
 
     let botReply = null;
-    let lastError = null;
+    let lastErrorStatus = null;
+    let lastErrorMessage = "";
 
-    // Mencoba satu per satu API Key yang tersedia
+    // 5. Perulangan Fallback API Key
     for (let i = 0; i < API_KEYS.length; i++) {
       const currentApiKey = API_KEYS[i];
 
@@ -142,58 +150,41 @@ Aturan Utama Penyampaian:
             model: MODEL,
             messages: messages,
             temperature: 0.6,
-            max_tokens: 800, // Batas panjang balasan AI agar irit token
+            max_tokens: 800,
           }),
         });
 
-        // Jika API Key ini bermasalah (error/limit), cetak log dan coba key berikutnya
         if (!apiResponse.ok) {
           const errorData = await apiResponse.json().catch(() => ({}));
-          const status = apiResponse.status;
-          console.warn(`[Key Ke-${i + 1} Gagal] Status: ${status}`);
-          lastError = { status, message: errorData?.error?.message || apiResponse.statusText };
-          continue; // Lanjut ke perulangan berikutnya
+          lastErrorStatus = apiResponse.status;
+          lastErrorMessage = errorData?.error?.message || apiResponse.statusText;
+          console.warn(`[Key Ke-${i + 1} Gagal] Status: ${lastErrorStatus} - ${lastErrorMessage}`);
+          continue;
         }
 
-        // Jika sukses
         const data = await apiResponse.json();
         botReply = data?.choices?.[0]?.message?.content || "Tidak ada respon dari server.";
-        break; // Hentikan perulangan karena sudah berhasil
+        break; // Sukses, keluar loop
 
       } catch (err) {
-        console.error(`[Key Ke-${i + 1} Network Error]:`, err);
-        lastError = err;
+        console.error(`[Key Ke-${i + 1} Fetch Error]:`, err);
+        lastErrorMessage = err?.message || "Gangguan koneksi API.";
       }
     }
 
-    // Jika seluruh API Key gagal
     if (!botReply) {
-      throw lastError || new Error("Semua API Key gagal memproses permintaan.");
+      if (lastErrorStatus === 429) {
+        return res.status(429).json({ error: "Batas kuota seluruh API Key telah tercapai. Silakan coba lagi nanti." });
+      }
+      return res.status(500).json({ error: `Gagal menghubungkan ke AI Service: ${lastErrorMessage}` });
     }
 
-    // Kirim hasil balasan AI ke frontend
     return res.status(200).json({ result: botReply });
 
   } catch (e) {
-    console.error("API Error Final:", e);
-
-    // Penanganan pesan kesalahan (Error Handling)
-    const isRateLimit = e?.status === 429 || e?.message?.includes("429") || e?.message?.includes("quota");
-    if (isRateLimit) {
-      return res.status(429).json({
-        error: "Batas kuota seluruh API Key tercapai. Silakan tunggu 1-2 menit.",
-      });
-    }
-
-    const isHighDemand = e?.status === 503 || e?.status === 502 || e?.message?.includes("503");
-    if (isHighDemand) {
-      return res.status(503).json({
-        error: "Server sedang mengalami lonjakan trafik. Silakan coba kirim ulang.",
-      });
-    }
-
+    console.error("Fatal Handler Error:", e);
     return res.status(500).json({
-      error: "Terjadi kendala teknis pada server. Silakan coba lagi.",
+      error: "Terjadi kesalahan internal pada server.",
     });
   }
 }

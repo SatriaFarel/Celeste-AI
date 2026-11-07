@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="id" class="dark">
+<html lang="id">
 
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Celeste AI : Asisten belajar anda</title>
+    <title>Celeste AI — Asisten Belajar Anda</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Marked JS for Markdown Rendering -->
@@ -26,18 +26,48 @@
     </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap"
         rel="stylesheet" />
 
     <style>
-        body {
-            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-            -webkit-tap-highlight-color: transparent;
+        :root {
+            color-scheme: light;
+            --page: #f7f6f1;
+            --surface: #fcfbf8;
+            --panel: #f2f0e9;
+            --line: #e7e4da;
+            --ink: #292d26;
+            --muted: #77796f;
+            --accent: #65715a;
+            --accent-hover: #56624c;
         }
 
-        /* Custom scrollbar for clean UI */
+        .dark {
+            color-scheme: dark;
+            --page: #20221e;
+            --surface: #262823;
+            --panel: #2d3029;
+            --line: #3a3d35;
+            --ink: #eeeee7;
+            --muted: #a4a69a;
+            --accent: #a7b095;
+            --accent-hover: #bbc3aa;
+        }
+
+        body {
+            font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            background: var(--page);
+            color: var(--ink);
+        }
+
+        .app-shell {
+            background: var(--page) !important;
+            color: var(--ink) !important;
+        }
+
         .custom-scrollbar::-webkit-scrollbar {
-            width: 5px;
+            width: 6px;
         }
 
         .custom-scrollbar::-webkit-scrollbar-track {
@@ -45,17 +75,136 @@
         }
 
         .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
+            background: #d8d5ca;
             border-radius: 9999px;
         }
 
         .dark .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #334155;
+            background: #4a4d43;
         }
 
-        /* Prose markdown tweaking */
+        .app-sidebar {
+            background: var(--panel) !important;
+            border-color: var(--line) !important;
+        }
+
+        .app-sidebar-header,
+        .app-sidebar-footer,
+        .app-header,
+        .app-composer {
+            border-color: var(--line) !important;
+        }
+
+        .app-sidebar-footer {
+            background: transparent !important;
+        }
+
+        .app-main {
+            background: var(--surface) !important;
+        }
+
+        .app-title {
+            font-family: 'DM Serif Display', Georgia, serif;
+            font-size: 1.1rem !important;
+            font-weight: 400 !important;
+            letter-spacing: 0.01em;
+        }
+
+        .app-header {
+            background: color-mix(in srgb, var(--surface) 92%, transparent) !important;
+        }
+
+        .app-brand-mark {
+            background: var(--accent) !important;
+            color: #fff !important;
+            border-radius: 10px !important;
+            box-shadow: none !important;
+        }
+
+        .dark .app-brand-mark {
+            background: var(--accent) !important;
+            color: #20221e !important;
+        }
+
+        .app-card {
+            background: color-mix(in srgb, var(--surface) 72%, var(--panel)) !important;
+            border-color: var(--line) !important;
+            border-radius: 12px !important;
+        }
+
+        .app-note {
+            background: transparent !important;
+            border-color: var(--line) !important;
+        }
+
+        .app-reset {
+            background: transparent !important;
+            border-color: var(--line) !important;
+            box-shadow: none !important;
+        }
+
+        .app-reset:hover {
+            background: #ece9df !important;
+            color: #8a5548 !important;
+        }
+
+        .dark .app-reset:hover {
+            background: #38332e !important;
+        }
+
+        .app-avatar {
+            background: #e8e6dc !important;
+            color: #59614f !important;
+        }
+
+        .dark .app-avatar {
+            background: #393c33 !important;
+            color: #d6dacb !important;
+        }
+
+        .app-chat {
+            padding-top: clamp(1.5rem, 5vh, 3.5rem) !important;
+            padding-bottom: 2rem !important;
+        }
+
+        .app-composer {
+            background: var(--surface) !important;
+        }
+
+        .app-composer-form {
+            background: var(--page) !important;
+            border-color: var(--line) !important;
+            border-radius: 16px !important;
+            padding: 0.75rem !important;
+            box-shadow: 0 4px 18px rgb(46 45 34 / 4%);
+        }
+
+        .dark .app-composer-form {
+            box-shadow: 0 4px 18px rgb(0 0 0 / 12%);
+        }
+
+        .app-composer-form:focus-within {
+            border-color: #b7b9a7 !important;
+            box-shadow: 0 0 0 3px rgb(101 113 90 / 10%);
+        }
+
+        .app-send {
+            background: var(--accent) !important;
+            color: #fff !important;
+            border-radius: 10px !important;
+            padding: 0.55rem !important;
+        }
+
+        .app-send:hover {
+            background: var(--accent-hover) !important;
+        }
+
+        .dark .app-send {
+            color: #20221e !important;
+        }
+
         .prose pre {
-            background-color: #0f172a !important;
+            background-color: #30332c !important;
             padding: 0.75rem;
             border-radius: 0.5rem;
             overflow-x: auto;
@@ -73,7 +222,40 @@
         .prose pre code {
             background-color: transparent;
             padding: 0;
-            color: #e2e8f0;
+            color: #eeeee7;
+        }
+
+        .app-message-bubble {
+            border-radius: 16px !important;
+            box-shadow: none !important;
+        }
+
+        .app-message-user {
+            background: var(--accent) !important;
+            color: #fff !important;
+        }
+
+        .dark .app-message-user {
+            color: #20221e !important;
+        }
+
+        .app-message-assistant {
+            background: #f3f1ea !important;
+            border-color: #ece9df !important;
+            color: var(--ink) !important;
+        }
+
+        .dark .app-message-assistant {
+            background: #2d3029 !important;
+            border-color: #3a3d35 !important;
+        }
+
+        .app-message-assistant.prose :not(pre) > code {
+            color: #704e38;
+        }
+
+        .dark .app-message-assistant.prose :not(pre) > code {
+            color: #d4b895;
         }
 
         .prose p {
@@ -101,7 +283,7 @@
 </head>
 
 <body
-    class="bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100 h-screen flex overflow-hidden antialiased transition-colors duration-200">
+    class="app-shell bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100 h-screen flex overflow-hidden antialiased transition-colors duration-200">
 
     <!-- Mobile Sidebar Backdrop -->
     <div id="sidebar-backdrop" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-20 hidden md:hidden"></div>
@@ -111,17 +293,17 @@
 
         <!-- Sidebar (Chat Controls & Widget Info) -->
         <aside id="sidebar"
-            class="fixed md:relative z-30 w-72 h-full bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800/80 flex flex-col transition-transform duration-300 -translate-x-full md:translate-x-0 shrink-0">
+            class="app-sidebar fixed md:relative z-30 w-72 h-full bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800/80 flex flex-col transition-transform duration-300 -translate-x-full md:translate-x-0 shrink-0">
             <!-- Sidebar Header -->
-            <div class="p-4 border-b border-slate-200 dark:border-slate-800/80 flex items-center justify-between">
+            <div class="app-sidebar-header p-4 border-b border-slate-200 dark:border-slate-800/80 flex items-center justify-between">
                 <div class="flex items-center gap-2.5">
                     <div
-                        class="w-8 h-8 rounded-lg bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 flex items-center justify-center font-bold text-sm tracking-tight shadow-sm">
-                        M
+                        class="app-brand-mark w-8 h-8 rounded-lg bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 flex items-center justify-center font-bold text-sm tracking-tight shadow-sm">
+                        C
                     </div>
                     <div>
-                        <h2 class="text-sm font-semibold leading-none text-slate-900 dark:text-slate-100">Workspace</h2>
-                        <span class="text-[11px] text-slate-500 dark:text-slate-400">Celeste Ai</span>
+                        <h2 class="text-sm font-semibold leading-none text-slate-900 dark:text-slate-100">Celeste AI</h2>
+                        <span class="text-[11px] text-slate-500 dark:text-slate-400">Ruang belajar</span>
                     </div>
                 </div>
                 <button id="close-sidebar-mobile"
@@ -136,7 +318,7 @@
             <!-- Reset Chat Action -->
             <div class="p-3">
                 <button id="reset-chat-btn"
-                    class="w-full flex items-center justify-center gap-2 bg-slate-100 hover:bg-rose-50 text-slate-700 hover:text-rose-600 dark:bg-slate-800 dark:hover:bg-rose-950/40 dark:text-slate-200 dark:hover:text-rose-400 border border-slate-200 dark:border-slate-700/60 font-medium text-xs py-2.5 px-4 rounded-lg transition-colors shadow-sm cursor-pointer">
+                    class="app-reset w-full flex items-center justify-center gap-2 bg-slate-100 hover:bg-rose-50 text-slate-700 hover:text-rose-600 dark:bg-slate-800 dark:hover:bg-rose-950/40 dark:text-slate-200 dark:hover:text-rose-400 border border-slate-200 dark:border-slate-700/60 font-medium text-xs py-2.5 px-4 rounded-lg transition-colors shadow-sm cursor-pointer">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -149,7 +331,7 @@
             <div class="flex-1 overflow-y-auto custom-scrollbar px-3 py-2 space-y-4">
                 
                 <!-- Realtime Time Widget (Jakarta / WIB) -->
-                <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 space-y-1">
+                <div class="app-card p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 space-y-1">
                     <div class="flex items-center justify-between text-[11px] font-medium text-slate-400 uppercase tracking-wider">
                         <span>Waktu Sistem</span>
                         <span class="text-[10px] bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded font-mono">WIB</span>
@@ -163,7 +345,7 @@
                 </div>
 
                 <!-- Session Information Widget -->
-                <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 space-y-2.5">
+                <div class="app-card p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 space-y-2.5">
                     <div class="text-[11px] font-medium text-slate-400 uppercase tracking-wider">
                         Info Obrolan
                     </div>
@@ -188,7 +370,7 @@
                 </div>
 
                 <!-- Guidance / Notes -->
-                <div class="p-3 rounded-xl bg-slate-50/50 dark:bg-slate-800/20 border border-slate-200/50 dark:border-slate-800/50 text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                <div class="app-note p-3 rounded-xl bg-slate-50/50 dark:bg-slate-800/20 border border-slate-200/50 dark:border-slate-800/50 text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
                     <p class="text-[11px]">
                         💡 Pesan tersimpan otomatis di browser ini selama 24 jam sejak aktivitas terakhir.
                     </p>
@@ -197,7 +379,7 @@
             </div>
 
             <!-- Sidebar Footer Status -->
-            <div class="p-3 border-t border-slate-200 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-900/50">
+            <div class="app-sidebar-footer p-3 border-t border-slate-200 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-900/50">
                 <div class="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
                     <div class="flex items-center gap-2">
                         <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
@@ -209,11 +391,11 @@
         </aside>
 
         <!-- Main Chat Area -->
-        <main class="flex-1 flex flex-col h-full min-w-0 bg-white dark:bg-slate-900">
+        <main class="app-main flex-1 flex flex-col h-full min-w-0 bg-white dark:bg-slate-900">
 
             <!-- Header Bar -->
             <header
-                class="h-14 border-b border-slate-200 dark:border-slate-800/80 px-4 sm:px-6 flex items-center justify-between shrink-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur">
+                class="app-header h-14 border-b border-slate-200 dark:border-slate-800/80 px-4 sm:px-6 flex items-center justify-between shrink-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur">
                 <div class="flex items-center gap-3">
                     <button id="open-sidebar-mobile"
                         class="md:hidden text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 p-1">
@@ -225,14 +407,14 @@
                     <div class="flex items-center gap-2.5">
                         <div class="relative">
                             <div
-                                class="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-xs font-semibold text-slate-700 dark:text-slate-200">
+                                class="app-avatar w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-xs font-semibold text-slate-700 dark:text-slate-200">
                                 AI
                             </div>
                             <span
                                 class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-white dark:border-slate-900 rounded-full"></span>
                         </div>
                         <div>
-                            <h1 class="text-sm font-semibold text-slate-900 dark:text-slate-100 leading-tight">Celeste Ai</h1>
+                            <h1 class="app-title text-sm font-semibold text-slate-900 dark:text-slate-100 leading-tight">Celeste AI</h1>
                             <p class="text-[11px] text-slate-500 dark:text-slate-400">Siap membantu belajar Anda</p>
                         </div>
                     </div>
@@ -260,14 +442,14 @@
             </header>
 
             <!-- Chat Messages Container -->
-            <div id="chat-box" class="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-6 space-y-5">
+            <div id="chat-box" class="app-chat flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-6 space-y-5">
                 <!-- Messages appended dynamically -->
             </div>
 
             <!-- Input Form Section -->
-            <div class="p-3 sm:p-4 border-t border-slate-200 dark:border-slate-800/80 bg-white dark:bg-slate-900">
+            <div class="app-composer p-3 sm:p-4 border-t border-slate-200 dark:border-slate-800/80 bg-white dark:bg-slate-900">
                 <form id="chat-form"
-                    class="max-w-4xl mx-auto flex flex-col gap-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/70 rounded-xl p-2 transition-all focus-within:border-slate-400 dark:focus-within:border-slate-600 focus-within:ring-1 focus-within:ring-slate-400/20">
+                    class="app-composer-form max-w-4xl mx-auto flex flex-col gap-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/70 rounded-xl p-2 transition-all focus-within:border-slate-400 dark:focus-within:border-slate-600 focus-within:ring-1 focus-within:ring-slate-400/20">
                     <textarea id="user-input" rows="1" placeholder="Tulis pesan..."
                         class="w-full bg-transparent border-0 px-2 py-1.5 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none resize-none max-h-32 custom-scrollbar"></textarea>
 
@@ -285,7 +467,7 @@
                             <span class="text-[11px] text-slate-400 hidden sm:inline">Tekan Enter untuk mengirim</span>
                         </div>
                         <button type="submit" id="send-btn"
-                            class="bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-slate-200 text-white dark:text-slate-900 p-1.5 rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center shrink-0">
+                            class="app-send bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-slate-200 text-white dark:text-slate-900 p-1.5 rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center shrink-0">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M5 12h14M12 5l7 7-7 7" />

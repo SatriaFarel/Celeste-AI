@@ -239,6 +239,8 @@ function createMessageElement(role, text, timeText, imageObj = null) {
         ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 px-4 py-2.5 rounded-2xl rounded-tr-xs text-sm shadow-sm leading-relaxed break-words w-full"
         : "bg-slate-100 dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-700/50 text-slate-800 dark:text-slate-100 px-4 py-2.5 rounded-2xl rounded-tl-xs text-sm shadow-sm leading-relaxed break-words prose dark:prose-invert w-full";
 
+    bubble.classList.add("app-message-bubble", isUser ? "app-message-user" : "app-message-assistant");
+
     // Jika pesan menyertakan gambar
     if (imageObj && imageObj.data && imageObj.mimeType) {
         const imgEl = document.createElement("img");
