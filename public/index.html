@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Celeste AI : Asisten belajar anda</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Marked JS for Markdown Rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        slate: {
+                            850: '#151f32',
+                            950: '#0b0f17',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+        rel="stylesheet" />
+
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Custom scrollbar for clean UI */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 9999px;
+        }
+
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #334155;
+        }
+
+        /* Prose markdown tweaking */
+        .prose pre {
+            background-color: #0f172a !important;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            margin-top: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .prose code {
+            font-size: 0.85em;
+            background-color: rgba(100, 116, 139, 0.15);
+            padding: 0.15rem 0.35rem;
+            border-radius: 0.25rem;
+        }
+
+        .prose pre code {
+            background-color: transparent;
+            padding: 0;
+            color: #e2e8f0;
+        }
+
+        .prose p {
+            margin-bottom: 0.5rem;
+        }
+
+        .prose p:last-child {
+            margin-bottom: 0;
+        }
+
+        .prose ul {
+            list-style-type: disc;
+            padding-left: 1.25rem;
+            margin-top: 0.25rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .prose ol {
+            list-style-type: decimal;
+            padding-left: 1.25rem;
+            margin-top: 0.25rem;
+            margin-bottom: 0.25rem;
+        }
+    </style>
+</head>
+
+<body
+    class="bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100 h-screen flex overflow-hidden antialiased transition-colors duration-200">
+
+    <!-- Mobile Sidebar Backdrop -->
+    <div id="sidebar-backdrop" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-20 hidden md:hidden"></div>
+
+    <!-- Main Application Wrapper -->
+    <div class="flex h-full w-full max-w-[1600px] mx-auto overflow-hidden">
+
+        <!-- Sidebar (Chat Controls & Widget Info) -->
+        <aside id="sidebar"
+            class="fixed md:relative z-30 w-72 h-full bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800/80 flex flex-col transition-transform duration-300 -translate-x-full md:translate-x-0 shrink-0">
+            <!-- Sidebar Header -->
+            <div class="p-4 border-b border-slate-200 dark:border-slate-800/80 flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                    <div
+                        class="w-8 h-8 rounded-lg bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 flex items-center justify-center font-bold text-sm tracking-tight shadow-sm">
+                        M
+                    </div>
+                    <div>
+                        <h2 class="text-sm font-semibold leading-none text-slate-900 dark:text-slate-100">Workspace</h2>
+                        <span class="text-[11px] text-slate-500 dark:text-slate-400">Celeste Ai</span>
+                    </div>
+                </div>
+                <button id="close-sidebar-mobile"
+                    class="md:hidden text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 p-1">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Reset Chat Action -->
+            <div class="p-3">
+                <button id="reset-chat-btn"
+                    class="w-full flex items-center justify-center gap-2 bg-slate-100 hover:bg-rose-50 text-slate-700 hover:text-rose-600 dark:bg-slate-800 dark:hover:bg-rose-950/40 dark:text-slate-200 dark:hover:text-rose-400 border border-slate-200 dark:border-slate-700/60 font-medium text-xs py-2.5 px-4 rounded-lg transition-colors shadow-sm cursor-pointer">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Reset Obrolan
+                </button>
+            </div>
+
+            <!-- Sidebar Content Widgets -->
+            <div class="flex-1 overflow-y-auto custom-scrollbar px-3 py-2 space-y-4">
+                
+                <!-- Realtime Time Widget (Jakarta / WIB) -->
+                <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 space-y-1">
+                    <div class="flex items-center justify-between text-[11px] font-medium text-slate-400 uppercase tracking-wider">
+                        <span>Waktu Sistem</span>
+                        <span class="text-[10px] bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded font-mono">WIB</span>
+                    </div>
+                    <div id="jakarta-clock" class="text-lg font-bold text-slate-800 dark:text-slate-100 tracking-tight font-mono">
+                        00:00:00
+                    </div>
+                    <div id="jakarta-date" class="text-[11px] text-slate-500 dark:text-slate-400">
+                        --
+                    </div>
+                </div>
+
+                <!-- Session Information Widget -->
+                <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 space-y-2.5">
+                    <div class="text-[11px] font-medium text-slate-400 uppercase tracking-wider">
+                        Info Obrolan
+                    </div>
+
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="text-slate-500 dark:text-slate-400">Status Sesi</span>
+                        <span class="inline-flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-medium">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                            Aktif
+                        </span>
+                    </div>
+
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="text-slate-500 dark:text-slate-400">Total Pesan</span>
+                        <span id="msg-counter" class="font-semibold text-slate-700 dark:text-slate-200">0</span>
+                    </div>
+
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="text-slate-500 dark:text-slate-400">Masa Simpan</span>
+                        <span class="text-slate-600 dark:text-slate-300 font-medium">24 Jam</span>
+                    </div>
+                </div>
+
+                <!-- Guidance / Notes -->
+                <div class="p-3 rounded-xl bg-slate-50/50 dark:bg-slate-800/20 border border-slate-200/50 dark:border-slate-800/50 text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                    <p class="text-[11px]">
+                        💡 Pesan tersimpan otomatis di browser ini selama 24 jam sejak aktivitas terakhir.
+                    </p>
+                </div>
+
+            </div>
+
+            <!-- Sidebar Footer Status -->
+            <div class="p-3 border-t border-slate-200 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-900/50">
+                <div class="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                        <span class="text-xs">Storage On</span>
+                    </div>
+                    <span class="text-[10px] text-slate-400 font-mono">v1.0.0</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Chat Area -->
+        <main class="flex-1 flex flex-col h-full min-w-0 bg-white dark:bg-slate-900">
+
+            <!-- Header Bar -->
+            <header
+                class="h-14 border-b border-slate-200 dark:border-slate-800/80 px-4 sm:px-6 flex items-center justify-between shrink-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur">
+                <div class="flex items-center gap-3">
+                    <button id="open-sidebar-mobile"
+                        class="md:hidden text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 p-1">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                    </button>
+                    <div class="flex items-center gap-2.5">
+                        <div class="relative">
+                            <div
+                                class="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-xs font-semibold text-slate-700 dark:text-slate-200">
+                                AI
+                            </div>
+                            <span
+                                class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-white dark:border-slate-900 rounded-full"></span>
+                        </div>
+                        <div>
+                            <h1 class="text-sm font-semibold text-slate-900 dark:text-slate-100 leading-tight">Celeste Ai</h1>
+                            <p class="text-[11px] text-slate-500 dark:text-slate-400">Siap membantu belajar Anda</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Controls -->
+                <div class="flex items-center gap-1.5">
+                    <!-- Dark/Light Theme Toggle -->
+                    <button id="theme-toggle" type="button" aria-label="Toggle Theme"
+                        class="p-2 rounded-lg text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                        <!-- Sun icon for Dark Mode -->
+                        <svg id="theme-toggle-light-icon" class="hidden w-4 h-4" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                        </svg>
+                        <!-- Moon icon for Light Mode -->
+                        <svg id="theme-toggle-dark-icon" class="hidden w-4 h-4" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                        </svg>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Chat Messages Container -->
+            <div id="chat-box" class="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-6 space-y-5">
+                <!-- Messages appended dynamically -->
+            </div>
+
+            <!-- Input Form Section -->
+            <div class="p-3 sm:p-4 border-t border-slate-200 dark:border-slate-800/80 bg-white dark:bg-slate-900">
+                <form id="chat-form"
+                    class="max-w-4xl mx-auto flex flex-col gap-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/70 rounded-xl p-2 transition-all focus-within:border-slate-400 dark:focus-within:border-slate-600 focus-within:ring-1 focus-within:ring-slate-400/20">
+                    <textarea id="user-input" rows="1" placeholder="Tulis pesan..."
+                        class="w-full bg-transparent border-0 px-2 py-1.5 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none resize-none max-h-32 custom-scrollbar"></textarea>
+
+                    <div
+                        class="flex items-center justify-between pt-1 border-t border-slate-200/50 dark:border-slate-700/30">
+                        <div class="flex items-center gap-1">
+                            <button type="button" id="mock-attach"
+                                class="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-md transition-colors"
+                                title="Lampirkan File">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                                </svg>
+                            </button>
+                            <span class="text-[11px] text-slate-400 hidden sm:inline">Tekan Enter untuk mengirim</span>
+                        </div>
+                        <button type="submit" id="send-btn"
+                            class="bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-slate-200 text-white dark:text-slate-900 p-1.5 rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center shrink-0">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M5 12h14M12 5l7 7-7 7" />
+                            </svg>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </main>
+    </div>
+
+    <!-- Clock Script for Realtime WIB Time -->
+    <script>
+    </script>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
