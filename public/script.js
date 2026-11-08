@@ -1,6 +1,7 @@
 // --- Configuration Constants ---
 const STORAGE_KEY = 'app_chat_session_v1';
 const THEME_KEY = 'app_theme_mode';
+const MODEL_KEY = 'app_selected_model';
 const SESSION_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 jam
 
 // --- DOM Elements ---
@@ -13,6 +14,10 @@ const darkIcon = document.getElementById("theme-toggle-dark-icon");
 const lightIcon = document.getElementById("theme-toggle-light-icon");
 const resetChatBtn = document.getElementById("reset-chat-btn");
 const msgCounter = document.getElementById("msg-counter");
+
+// Dropdown Select Model (Desktop & Mobile)
+const modelSelectDesktop = document.getElementById("model-select");
+const modelSelectMobile = document.getElementById("model-select-mobile");
 
 // Sidebar & Drawer Controls
 const sidebar = document.getElementById("sidebar");
@@ -34,6 +39,27 @@ let sessionData = {
     timestamp: Date.now(),
     messages: []
 };
+
+// --- Model Selection Handling & Synchronization ---
+function getSelectedModel() {
+    return localStorage.getItem(MODEL_KEY) || (modelSelectDesktop ? modelSelectDesktop.value : 'mimo-v2.5-pro');
+}
+
+function initModel() {
+    const savedModel = getSelectedModel();
+    if (modelSelectDesktop) modelSelectDesktop.value = savedModel;
+    if (modelSelectMobile) modelSelectMobile.value = savedModel;
+}
+
+function handleModelChange(e) {
+    const selectedValue = e.target.value;
+    localStorage.setItem(MODEL_KEY, selectedValue);
+    if (modelSelectDesktop) modelSelectDesktop.value = selectedValue;
+    if (modelSelectMobile) modelSelectMobile.value = selectedValue;
+}
+
+if (modelSelectDesktop) modelSelectDesktop.addEventListener("change", handleModelChange);
+if (modelSelectMobile) modelSelectMobile.addEventListener("change", handleModelChange);
 
 // --- Theme Toggle ---
 function initTheme() {
@@ -92,7 +118,6 @@ function convertFileToBase64(file) {
     });
 }
 
-// Trigger input click
 btnGallery?.addEventListener("click", () => inputGallery?.click());
 btnCamera?.addEventListener("click", () => inputCamera?.click());
 
@@ -237,7 +262,6 @@ function createMessageElement(role, text, timeText, imageObj = null) {
 
     bubble.classList.add("app-message-bubble", isUser ? "app-message-user" : "app-message-assistant");
 
-    // Render Gambar Terlampir
     if (imageObj && imageObj.data && imageObj.mimeType) {
         const imgEl = document.createElement("img");
         imgEl.src = `data:${imageObj.mimeType};base64,${imageObj.data}`;
@@ -304,13 +328,14 @@ if (userInput) {
     });
 }
 
-// --- Chat Form Handling & Express API Integration ---
+// --- Chat Form Handling & Backend Vercel API Integration ---
 if (chatForm) {
     chatForm.addEventListener("submit", async (e) => {
         e.preventDefault();
 
         const userText = userInput.value.trim();
         const currentImageData = selectedImageData;
+        const selectedModel = getSelectedModel();
 
         if (!userText && !currentImageData) return;
 
@@ -337,10 +362,14 @@ if (chatForm) {
                 return item;
             });
 
+            // Kirim model terpilih bersama conversation payload ke Vercel API
             const response = await fetch("/api/chat", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ conversation: payload }),
+                body: JSON.stringify({
+                    model: selectedModel,
+                    conversation: payload
+                }),
             });
 
             if (chatBox.contains(thinkingWrapper)) {
@@ -401,6 +430,7 @@ function updateJakartaClock() {
 // Initial Load
 window.addEventListener("DOMContentLoaded", () => {
     initTheme();
+    initModel();
     loadSession();
     updateJakartaClock();
     setInterval(updateJakartaClock, 1000);

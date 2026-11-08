@@ -1,0 +1,224 @@
+:root {
+    color-scheme: light;
+    --page: #f7f6f1;
+    --surface: #fcfbf8;
+    --panel: #f2f0e9;
+    --line: #e7e4da;
+    --ink: #292d26;
+    --muted: #77796f;
+    --accent: #65715a;
+    --accent-hover: #56624c;
+}
+
+.dark {
+    color-scheme: dark;
+    --page: #20221e;
+    --surface: #262823;
+    --panel: #2d3029;
+    --line: #3a3d35;
+    --ink: #eeeee7;
+    --muted: #a4a69a;
+    --accent: #a7b095;
+    --accent-hover: #bbc3aa;
+}
+
+body {
+    font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+    background: var(--page);
+    color: var(--ink);
+}
+
+.app-shell {
+    background: var(--page) !important;
+    color: var(--ink) !important;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+    width: 5px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #d8d5ca;
+    border-radius: 9999px;
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #4a4d43;
+}
+
+.app-sidebar {
+    background: var(--panel) !important;
+    border-color: var(--line) !important;
+}
+
+.app-sidebar-header,
+.app-sidebar-footer,
+.app-header,
+.app-composer {
+    border-color: var(--line) !important;
+}
+
+.app-sidebar-footer {
+    background: transparent !important;
+}
+
+.app-main {
+    background: var(--surface) !important;
+}
+
+.app-title {
+    font-family: 'DM Serif Display', Georgia, serif;
+    font-size: 1.1rem !important;
+    font-weight: 400 !important;
+    letter-spacing: 0.01em;
+}
+
+.app-header {
+    background: color-mix(in srgb, var(--surface) 92%, transparent) !important;
+}
+
+.app-brand-mark {
+    background: var(--accent) !important;
+    color: #fff !important;
+    border-radius: 10px !important;
+}
+
+.dark .app-brand-mark {
+    background: var(--accent) !important;
+    color: #20221e !important;
+}
+
+.app-card {
+    background: color-mix(in srgb, var(--surface) 72%, var(--panel)) !important;
+    border-color: var(--line) !important;
+    border-radius: 12px !important;
+}
+
+.app-reset {
+    background: transparent !important;
+    border-color: var(--line) !important;
+}
+
+.app-reset:hover {
+    background: #ece9df !important;
+    color: #8a5548 !important;
+}
+
+.dark .app-reset:hover {
+    background: #38332e !important;
+}
+
+.app-composer {
+    background: var(--surface) !important;
+}
+
+.app-composer-form {
+    background: var(--page) !important;
+    border-color: var(--line) !important;
+    border-radius: 16px !important;
+    box-shadow: 0 4px 18px rgb(46 45 34 / 4%);
+}
+
+.dark .app-composer-form {
+    box-shadow: 0 4px 18px rgb(0 0 0 / 12%);
+}
+
+.app-composer-form:focus-within {
+    border-color: #b7b9a7 !important;
+    box-shadow: 0 0 0 3px rgb(101 113 90 / 10%);
+}
+
+.app-send {
+    background: var(--accent) !important;
+    color: #fff !important;
+    border-radius: 10px !important;
+}
+
+.app-send:hover {
+    background: var(--accent-hover) !important;
+}
+
+.dark .app-send {
+    color: #20221e !important;
+}
+
+.prose pre {
+    background-color: #30332c !important;
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    overflow-x: auto;
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.prose code {
+    font-size: 0.85em;
+    background-color: rgba(100, 116, 139, 0.15);
+    padding: 0.15rem 0.35rem;
+    border-radius: 0.25rem;
+}
+
+.prose pre code {
+    background-color: transparent;
+    padding: 0;
+    color: #eeeee7;
+}
+
+.app-message-bubble {
+    border-radius: 16px !important;
+}
+
+.app-message-user {
+    background: var(--accent) !important;
+    color: #fff !important;
+}
+
+.dark .app-message-user {
+    color: #20221e !important;
+}
+
+.app-message-assistant {
+    background: #f3f1ea !important;
+    border-color: #ece9df !important;
+    color: var(--ink) !important;
+}
+
+.dark .app-message-assistant {
+    background: #2d3029 !important;
+    border-color: #3a3d35 !important;
+}
+
+.app-message-assistant.prose :not(pre)>code {
+    color: #704e38;
+}
+
+.dark .app-message-assistant.prose :not(pre)>code {
+    color: #d4b895;
+}
+
+.prose p {
+    margin-bottom: 0.5rem;
+}
+
+.prose p:last-child {
+    margin-bottom: 0;
+}
+
+.prose ul {
+    list-style-type: disc;
+    padding-left: 1.25rem;
+    margin-top: 0.25rem;
+    margin-bottom: 0.25rem;
+}
+
+.prose ol {
+    list-style-type: decimal;
+    padding-left: 1.25rem;
+    margin-top: 0.25rem;
+    margin-bottom: 0.25rem;
+}
