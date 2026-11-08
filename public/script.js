@@ -1,7 +1,7 @@
 // --- Configuration Constants ---
 const STORAGE_KEY = 'app_chat_session_v1';
 const THEME_KEY = 'app_theme_mode';
-const SESSION_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 Hours in milliseconds
+const SESSION_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 jam
 
 // --- DOM Elements ---
 const chatForm = document.getElementById("chat-form");
@@ -14,13 +14,19 @@ const lightIcon = document.getElementById("theme-toggle-light-icon");
 const resetChatBtn = document.getElementById("reset-chat-btn");
 const msgCounter = document.getElementById("msg-counter");
 
-// Mobile Sidebar Controls
+// Sidebar & Drawer Controls
 const sidebar = document.getElementById("sidebar");
 const sidebarBackdrop = document.getElementById("sidebar-backdrop");
 const openSidebarMobile = document.getElementById("open-sidebar-mobile");
 const closeSidebarMobile = document.getElementById("close-sidebar-mobile");
 
-// Temp State untuk Gambar Terpilih
+// Input File Handling
+const btnGallery = document.getElementById("btn-attach-gallery");
+const btnCamera = document.getElementById("btn-attach-camera");
+const inputGallery = document.getElementById("file-input-gallery");
+const inputCamera = document.getElementById("file-input-camera");
+
+// State Gambar Terpilih
 let selectedImageData = null;
 
 // App Session State
@@ -29,14 +35,7 @@ let sessionData = {
     messages: []
 };
 
-// --- Dynamic File Input Initialization ---
-const fileInput = document.createElement("input");
-fileInput.type = "file";
-fileInput.accept = "image/*";
-fileInput.className = "hidden";
-document.body.appendChild(fileInput);
-
-// --- Theme Toggle Logic ---
+// --- Theme Toggle ---
 function initTheme() {
     const savedTheme = localStorage.getItem(THEME_KEY);
     const systemPrefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
@@ -61,7 +60,7 @@ if (themeToggleBtn) {
     });
 }
 
-// --- Sidebar Mobile Controls ---
+// --- Responsive Mobile Sidebar (Drawer) ---
 function toggleMobileSidebar(open) {
     if (!sidebar || !sidebarBackdrop) return;
     if (open) {
@@ -77,12 +76,12 @@ if (openSidebarMobile) openSidebarMobile.addEventListener("click", () => toggleM
 if (closeSidebarMobile) closeSidebarMobile.addEventListener("click", () => toggleMobileSidebar(false));
 if (sidebarBackdrop) sidebarBackdrop.addEventListener("click", () => toggleMobileSidebar(false));
 
-// --- Helper Konversi File ke Base64 ---
+// --- Image Handling & Base64 Converter ---
 function convertFileToBase64(file) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => {
-            const base64String = reader.result.split(',')[1]; // Murni Base64 tanpa header prefix
+            const base64String = reader.result.split(',')[1];
             resolve({
                 mimeType: file.type,
                 data: base64String
@@ -93,63 +92,65 @@ function convertFileToBase64(file) {
     });
 }
 
-// --- Event Upload Gambar ---
-const mockAttach = document.getElementById("mock-attach");
-if (mockAttach) {
-    mockAttach.addEventListener("click", () => {
-        fileInput.click();
-    });
+// Trigger input click
+btnGallery?.addEventListener("click", () => inputGallery?.click());
+btnCamera?.addEventListener("click", () => inputCamera?.click());
+
+async function handleImageSelect(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+        alert("Harap pilih file berformat gambar (JPG, PNG, WebP).");
+        return;
+    }
+
+    try {
+        selectedImageData = await convertFileToBase64(file);
+        showImagePreview(file);
+    } catch (err) {
+        console.error("Gagal membaca gambar:", err);
+    }
 }
 
-fileInput.addEventListener("change", async (e) => {
-    const file = e.target.files[0];
-    if (file) {
-        if (!file.type.startsWith("image/")) {
-            alert("Harap pilih file berupa gambar (JPG, PNG, WebP, dll).");
-            return;
-        }
-        try {
-            selectedImageData = await convertFileToBase64(file);
-            showImagePreview(file);
-        } catch (err) {
-            console.error("Gagal membaca file gambar:", err);
-        }
-    }
-});
+inputGallery?.addEventListener("change", handleImageSelect);
+inputCamera?.addEventListener("change", handleImageSelect);
 
 function showImagePreview(file) {
     let previewContainer = document.getElementById("image-preview-container");
     if (!previewContainer) {
         previewContainer = document.createElement("div");
         previewContainer.id = "image-preview-container";
-        previewContainer.className = "flex items-center gap-2 p-2 mb-2 bg-slate-200/60 dark:bg-slate-700/60 rounded-lg text-xs";
+        previewContainer.className = "flex items-center gap-2 p-2 mb-1 bg-slate-200/60 dark:bg-slate-700/60 rounded-xl text-xs w-full max-w-full overflow-hidden";
         chatForm.insertBefore(previewContainer, chatForm.firstChild);
     }
+
+    const previewUrl = `data:${selectedImageData.mimeType};base64,${selectedImageData.data}`;
     
     previewContainer.innerHTML = `
-        <span class="truncate font-medium text-slate-700 dark:text-slate-200">🖼️ ${file.name}</span>
-        <button type="button" id="remove-image-btn" class="ml-auto text-rose-500 hover:text-rose-600 font-bold px-1.5 cursor-pointer">✕</button>
+        <img src="${previewUrl}" class="w-9 h-9 object-cover rounded-lg border border-slate-300 dark:border-slate-600 shrink-0" alt="Preview" />
+        <span class="truncate font-medium text-slate-700 dark:text-slate-200 flex-1">${file.name}</span>
+        <button type="button" id="remove-image-btn" class="text-rose-500 hover:text-rose-600 font-bold px-2 py-1 cursor-pointer rounded-lg active:bg-rose-100 dark:active:bg-rose-950/40">✕</button>
     `;
 
-    document.getElementById("remove-image-btn").addEventListener("click", clearImageSelection);
+    document.getElementById("remove-image-btn")?.addEventListener("click", clearImageSelection);
 }
 
 function clearImageSelection() {
     selectedImageData = null;
-    fileInput.value = "";
+    if (inputGallery) inputGallery.value = "";
+    if (inputCamera) inputCamera.value = "";
     const previewContainer = document.getElementById("image-preview-container");
     if (previewContainer) previewContainer.remove();
 }
 
-// --- Session Storage & Persistence ---
+// --- Session Persistence ---
 function loadSession() {
     try {
         const rawData = localStorage.getItem(STORAGE_KEY);
         if (rawData) {
             const parsed = JSON.parse(rawData);
-            const now = Date.now();
-
-            if (now - parsed.timestamp < SESSION_EXPIRY_MS) {
+            if (Date.now() - parsed.timestamp < SESSION_EXPIRY_MS) {
                 sessionData = parsed;
             } else {
                 clearSession();
@@ -157,14 +158,14 @@ function loadSession() {
             }
         }
     } catch (e) {
-        console.error("Gagal membaca riwayat lokal", e);
+        console.error("Gagal membaca riwayat", e);
     }
 
     if (!sessionData.messages || sessionData.messages.length === 0) {
         sessionData.messages = [
             {
                 role: "model",
-                text: "Halo! Saya Celeste AI, teman belajar dan asisten virtual Anda. Ada konsep atau materi yang ingin didiskusikan hari ini?",
+                text: "Halo! Saya Celeste AI, teman belajar dan asisten virtual Anda. Ada materi atau foto tugas yang ingin kita bahas hari ini?",
                 time: formatTime(new Date())
             }
         ];
@@ -179,8 +180,6 @@ function saveSession() {
     try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(sessionData));
     } catch (e) {
-        console.warn("Penyimpanan lokal penuh, menyimpan tanpa gambar lama...", e);
-        // Fallback jika localStorage penuh: hapus data gambar dari pesan lama untuk menghemat memori
         const cleanSession = {
             ...sessionData,
             messages: sessionData.messages.map(m => {
@@ -219,9 +218,7 @@ function formatTime(dateObj) {
 }
 
 function updateMsgCounter() {
-    if (msgCounter) {
-        msgCounter.textContent = sessionData.messages.length;
-    }
+    if (msgCounter) msgCounter.textContent = sessionData.messages.length;
 }
 
 // --- Render Messages UI ---
@@ -230,22 +227,21 @@ function createMessageElement(role, text, timeText, imageObj = null) {
     const isUser = role === "user";
 
     wrapper.className = isUser
-        ? "flex flex-col items-end max-w-[85%] sm:max-w-[75%] ml-auto space-y-1"
-        : "flex flex-col items-start max-w-[85%] sm:max-w-[75%] space-y-1";
+        ? "flex flex-col items-end max-w-[90%] sm:max-w-[80%] ml-auto space-y-1"
+        : "flex flex-col items-start max-w-[90%] sm:max-w-[80%] space-y-1";
 
-    // Bubble Element
     const bubble = document.createElement("div");
     bubble.className = isUser
-        ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 px-4 py-2.5 rounded-2xl rounded-tr-xs text-sm shadow-sm leading-relaxed break-words w-full"
-        : "bg-slate-100 dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-700/50 text-slate-800 dark:text-slate-100 px-4 py-2.5 rounded-2xl rounded-tl-xs text-sm shadow-sm leading-relaxed break-words prose dark:prose-invert w-full";
+        ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 px-3.5 py-2.5 rounded-2xl rounded-tr-xs text-sm shadow-xs leading-relaxed break-words w-full"
+        : "bg-slate-100 dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-700/50 text-slate-800 dark:text-slate-100 px-3.5 py-2.5 rounded-2xl rounded-tl-xs text-sm shadow-xs leading-relaxed break-words prose dark:prose-invert w-full";
 
     bubble.classList.add("app-message-bubble", isUser ? "app-message-user" : "app-message-assistant");
 
-    // Jika pesan menyertakan gambar
+    // Render Gambar Terlampir
     if (imageObj && imageObj.data && imageObj.mimeType) {
         const imgEl = document.createElement("img");
         imgEl.src = `data:${imageObj.mimeType};base64,${imageObj.data}`;
-        imgEl.className = "max-w-full max-h-60 rounded-lg mb-2 object-cover border border-slate-300/30";
+        imgEl.className = "max-w-full max-h-64 sm:max-h-80 rounded-xl mb-2 object-cover border border-slate-300/30";
         bubble.appendChild(imgEl);
     }
 
@@ -254,16 +250,11 @@ function createMessageElement(role, text, timeText, imageObj = null) {
         if (isUser) {
             textContainer.textContent = text;
         } else {
-            if (window.marked) {
-                textContainer.innerHTML = marked.parse(text);
-            } else {
-                textContainer.textContent = text;
-            }
+            textContainer.innerHTML = window.marked ? marked.parse(text) : text;
         }
         bubble.appendChild(textContainer);
     }
 
-    // Time Metadata
     const meta = document.createElement("span");
     meta.className = "text-[10px] text-slate-400 dark:text-slate-500 px-1";
     meta.textContent = timeText || formatTime(new Date());
@@ -298,7 +289,7 @@ function appendMessage(role, text, imageObj = null) {
     chatBox.scrollTop = chatBox.scrollHeight;
 }
 
-// --- Textarea Auto Expand & Shortcut ---
+// --- Textarea Expand & Enter Shortcut ---
 if (userInput) {
     userInput.addEventListener("input", () => {
         userInput.style.height = "auto";
@@ -306,14 +297,14 @@ if (userInput) {
     });
 
     userInput.addEventListener("keydown", (e) => {
-        if (e.key === "Enter" && !e.shiftKey) {
+        if (e.key === "Enter" && !e.shiftKey && window.innerWidth >= 640) {
             e.preventDefault();
             if (chatForm) chatForm.dispatchEvent(new Event("submit"));
         }
     });
 }
 
-// --- Chat Form Handling & Backend Express API ---
+// --- Chat Form Handling & Express API Integration ---
 if (chatForm) {
     chatForm.addEventListener("submit", async (e) => {
         e.preventDefault();
@@ -323,24 +314,23 @@ if (chatForm) {
 
         if (!userText && !currentImageData) return;
 
-        // 1. Reset Input UI & Attachment
+        // Reset Input UI
         userInput.value = "";
         userInput.style.height = "auto";
         userInput.disabled = true;
         if (sendBtn) sendBtn.disabled = true;
         clearImageSelection();
 
-        // 2. Append User Message
+        // Append User Message
         appendMessage("user", userText, currentImageData);
 
-        // 3. Show Bot Thinking Indicator
+        // Indicator Loading
         const { wrapper: thinkingWrapper, bubble: botBubble } = createMessageElement("model", "...", formatTime(new Date()));
         botBubble.classList.add("animate-pulse", "text-slate-400");
         chatBox.appendChild(thinkingWrapper);
         chatBox.scrollTop = chatBox.scrollHeight;
 
         try {
-            // Format payload termasuk objek gambar jika ada
             const payload = sessionData.messages.map(m => {
                 const item = { role: m.role, text: m.text };
                 if (m.image) item.image = m.image;
@@ -349,12 +339,8 @@ if (chatForm) {
 
             const response = await fetch("/api/chat", {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    conversation: payload,
-                }),
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ conversation: payload }),
             });
 
             if (chatBox.contains(thinkingWrapper)) {
@@ -363,9 +349,8 @@ if (chatForm) {
 
             const data = await response.json();
 
-            // Tangani response HTTP error (seperti 429 Rate Limit, 413 Payload Large, 500)
             if (!response.ok) {
-                const errorMessage = data && data.error ? data.error : `Terjadi kesalahan pada server (Status: ${response.status}).`;
+                const errorMessage = data && data.error ? data.error : `Terjadi kesalahan server (${response.status}).`;
                 appendMessage("model", `⚠️ **Informasi:** ${errorMessage}`);
                 return;
             }
@@ -387,7 +372,7 @@ if (chatForm) {
     });
 }
 
-// --- Handlers Tombol Reset Obrolan ---
+// --- Reset Button ---
 if (resetChatBtn) {
     resetChatBtn.addEventListener("click", () => {
         if (confirm("Apakah Anda yakin ingin mereset seluruh obrolan?")) {
@@ -397,7 +382,7 @@ if (resetChatBtn) {
     });
 }
 
-// --- Realtime Clock Jakarta (WIB) ---
+// --- Realtime Clock (WIB) ---
 function updateJakartaClock() {
     const now = new Date();
     const optionsTime = { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
@@ -413,7 +398,7 @@ function updateJakartaClock() {
     if (dateEl) dateEl.textContent = dateStr;
 }
 
-// --- Initial Load ---
+// Initial Load
 window.addEventListener("DOMContentLoaded", () => {
     initTheme();
     loadSession();
